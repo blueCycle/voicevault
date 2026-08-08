@@ -11,3 +11,10 @@ websockets
 python-dotenv
 boto3
 jiwer
+fastapi
+uvicorn[standard]
+sqlite-vec
+# pysqlite3 is intentionally NOT listed here — it needs Homebrew's sqlite3
+# headers/libs at build time (CFLAGS/LDFLAGS), which a plain
+# `pip install -r requirements.txt` can't express. setup.sh installs it
+# separately with the right flags.

@@ -27,6 +27,21 @@ pip install --upgrade pip
 echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
+# pysqlite3: the notes-search index (sqlite-vec) needs loadable-extension
+# support that most prebuilt Python interpreters ship without. Build it
+# against Homebrew's sqlite3, which has it enabled.
+if ! python3 -c "import pysqlite3" 2>/dev/null; then
+    if command -v brew &> /dev/null && brew --prefix sqlite &> /dev/null; then
+        echo "Building pysqlite3 against Homebrew's sqlite3 (for notes search)..."
+        CFLAGS="-I$(brew --prefix sqlite)/include" LDFLAGS="-L$(brew --prefix sqlite)/lib" \
+            pip install pysqlite3 --no-binary pysqlite3
+    else
+        echo "⚠️  Homebrew's sqlite3 not found — skipping pysqlite3."
+        echo "   Notes search (Electron dashboard) needs it: brew install sqlite"
+        echo "   then re-run this script."
+    fi
+fi
+
 # Check for Ollama
 if ! command -v ollama &> /dev/null; then
     echo "⚠️  Ollama not found. Install from https://ollama.com"
