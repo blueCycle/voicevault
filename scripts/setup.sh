@@ -56,6 +56,19 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
+# mlx-whisper (the default backend in .env.example) only has wheels for
+# Apple Silicon. On Intel Macs, switch the .env to faster-whisper/cpu so
+# the app actually starts instead of failing to import mlx on first run.
+if [ "$(uname -m)" != "arm64" ]; then
+    echo "⚠️  Intel Mac detected — mlx-whisper isn't available here."
+    echo "   Switching .env to the faster-whisper/cpu backend."
+    sed -i '' \
+        -e 's/^VV_WHISPER_BACKEND=mlx-whisper/VV_WHISPER_BACKEND=faster-whisper/' \
+        -e 's/^VV_WHISPER_MODEL=mlx-community\/whisper-large-v3-turbo/VV_WHISPER_MODEL=base/' \
+        -e 's/^VV_WHISPER_DEVICE=mps/VV_WHISPER_DEVICE=cpu/' \
+        .env
+fi
+
 # Check BlackHole (for system audio capture in meetings)
 if [ ! -d "/Library/Audio/Plug-Ins/HAL/BlackHole.driver" ]; then
     echo "⚠️  BlackHole not found. For meeting audio capture:"

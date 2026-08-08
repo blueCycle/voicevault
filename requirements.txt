@@ -4,7 +4,7 @@ pyperclip
 pynput
 rumps
 faster-whisper
-mlx-whisper
+mlx-whisper; sys_platform == "darwin" and platform_machine == "arm64"
 requests
 httpx
 websockets
