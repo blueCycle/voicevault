@@ -14,9 +14,9 @@ Privacy-first, open-source voice note-taking combining the best of **Dictation**
 ```
 VoiceVault (macOS menu bar app)
 ├── Dictation
-│   ├── Microphone stream capture
-│   ├── Whisper real-time transcription
-│   └── Text injection at cursor (Accessibility API → paste fallback)
+│   ├── Microphone stream capture (push-to-talk or double-tap hands-free)
+│   ├── Local Whisper transcription (mlx-whisper on Apple Silicon by default)
+│   └── Text injection at cursor (clipboard+paste → Accessibility API fallback)
 │
 ├── Meeting Recording
 │   ├── Audio recording (mic + optional system audio via BlackHole)
@@ -35,7 +35,8 @@ VoiceVault (macOS menu bar app)
 
 ```bash
 # 1. Clone and enter the directory
-cd ~/code/experiments/voicevault
+git clone git@github.com:blueCycle/voicevault.git
+cd voicevault
 
 # 2. Run setup (installs deps, checks Ollama, runs onboarding)
 ./scripts/setup.sh
@@ -56,6 +57,7 @@ The first time you run VoiceVault, macOS will prompt for:
 ## Prerequisites
 
 - macOS 14+ (Sonoma or later)
+- Apple Silicon (M-series) for the default `mlx-whisper` backend — Intel Macs should set `VV_WHISPER_BACKEND=faster-whisper` / `VV_WHISPER_DEVICE=cpu` in `.env`
 - Python 3.10+
 - [Homebrew](https://brew.sh) (for Ollama and BlackHole)
 - [Ollama](https://ollama.com) for meeting summarization (local, no cloud)
@@ -102,11 +104,12 @@ All settings are in `~/.voicevault/user.json` (created during onboarding) and `.
 
 ```env
 # Core settings
-VV_WHISPER_MODEL=base        # tiny/base/small/medium/large
-VV_WHISPER_DEVICE=cpu        # cpu, cuda, mps (Apple Silicon)
+VV_WHISPER_BACKEND=mlx-whisper                       # mlx-whisper (Apple Silicon) | faster-whisper (Intel/CPU)
+VV_WHISPER_MODEL=mlx-community/whisper-large-v3-turbo # model id or HF repo; tiny/base/small/medium/large for faster-whisper
+VV_WHISPER_DEVICE=mps        # mps (Apple Silicon), cpu, cuda — mlx-whisper ignores this, always uses Metal
 VV_OLLAMA_MODEL=llama3.1:8b  # Any model pulled in Ollama
 VV_OBSIDIAN_VAULT=~/Obsidian/voicevault
-VV_DICTATE_HOTKEY=ctrl       # ctrl, cmd, alt, f13, or any letter
+VV_DICTATE_HOTKEY=ctrl       # ctrl, cmd, alt, f13, or any letter — hold for push-to-talk, double-tap for hands-free
 
 # Provider selection (fallback chain)
 VV_STT_PROVIDER=local        # local | deepgram | assemblyai | speechmatics | revai | aws
@@ -130,15 +133,20 @@ MISTRAL_API_KEY=...
 
 ### Dictation
 
+**Push-to-talk (default):**
 1. Hold `Ctrl` key
 2. Speak naturally
 3. Release key
 4. Transcribed text appears at your cursor position in any app
 
-**Fallback chain:**
-1. macOS Accessibility API (keystroke injection)
-2. Clipboard + Cmd+V simulation
-3. Clipboard only (manual paste)
+**Hands-free:** double-tap `Ctrl` within ~0.35s to start recording without holding the key; a single press stops it and injects the text — useful for longer dictations.
+
+Every finished dictation is appended to a daily Markdown log (menu bar → "Open Today's Log") and can be re-pasted via "Replay Last Dictation".
+
+**Text injection fallback chain:**
+1. Clipboard + simulated Cmd+V (primary — most reliable, preserves formatting)
+2. AppleScript keystroke injection (fallback — works without clipboard permission)
+3. Clipboard only (final fallback — user pastes manually)
 
 ### Meeting Recording
 
@@ -246,7 +254,8 @@ This runs every provider you have API keys for, uses an LLM-as-judge (Claude 3.5
 - [x] 4 LLM providers (Ollama, Groq, Anthropic, OpenRouter)
 - [x] LLM-as-judge evaluation framework
 - [x] Test harness with auto-discovery and ranked reports
-- [ ] MVP: Working Dictation + Meeting modes on macOS
+- [x] MVP: Working Dictation + Meeting modes on macOS
+- [x] Hands-free dictation mode, dashboard, daily transcript log
 - [ ] Floating note window for Meeting mode
 - [ ] Speaker diarization (who said what)
 - [ ] Mobile companion app (React Native / SwiftUI)
