@@ -318,12 +318,73 @@ class VoiceVaultApp(rumps.App):
         Double-tap window: HOTKEY_DOUBLE_TAP_WINDOW_SEC s between a release
         and the next press.
         """
+        hk = CONFIG.dictate_hotkey.lower().strip()
+        if hk == 'fn':
+            self._listen_fn_hotkey()
+        else:
+            self._listen_pynput_hotkey(hk)
+
+    def _listen_fn_hotkey(self):
+        """Listen for the physical Fn/Globe key via a raw flagsChanged tap.
+
+        The Fn key (macOS virtual keycode 63 / kVK_Function) does not behave
+        like a normal key as far as pynput's press/release synthesis is
+        concerned: even with System Settings -> Keyboard -> "Press Fn key
+        to: Do Nothing" set (required — otherwise macOS eats the press
+        entirely for Emoji & Symbols / Dictation before any third-party
+        listener sees it), pynput's Listener only ever observed a release
+        event for it in testing, never a press. A raw CGEventTap watching
+        kCGEventFlagsChanged and checking kCGEventFlagMaskSecondaryFn
+        reliably sees both transitions, so we bypass pynput for this one
+        key rather than trust its abstraction here.
+        """
+        try:
+            import Quartz
+        except ImportError:
+            print("pyobjc (Quartz) not installed — required for the Fn hotkey. "
+                  "Install with: pip install pyobjc-framework-Quartz")
+            return
+
+        FN_KEYCODE = 0x3F  # kVK_Function
+
+        def callback(proxy, event_type, event, refcon):
+            if event_type == Quartz.kCGEventFlagsChanged:
+                keycode = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode)
+                if keycode == FN_KEYCODE:
+                    fn_down = bool(Quartz.CGEventGetFlags(event) & Quartz.kCGEventFlagMaskSecondaryFn)
+                    if fn_down:
+                        self._on_hotkey_press()
+                    else:
+                        self._on_hotkey_release()
+            return event
+
+        tap = Quartz.CGEventTapCreate(
+            Quartz.kCGSessionEventTap,
+            Quartz.kCGHeadInsertEventTap,
+            Quartz.kCGEventTapOptionListenOnly,
+            Quartz.CGEventMaskBit(Quartz.kCGEventFlagsChanged),
+            callback,
+            None,
+        )
+        if tap is None:
+            print("[Hotkeys] Failed to create Fn key event tap — check Input "
+                  "Monitoring permission in System Settings > Privacy & Security.")
+            return
+
+        run_loop_source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
+        Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetCurrent(), run_loop_source, Quartz.kCFRunLoopCommonModes)
+        Quartz.CGEventTapEnable(tap, True)
+        print(f"[Hotkeys] Listening for: fn "
+              f"(double-tap within {HOTKEY_DOUBLE_TAP_WINDOW_SEC}s → hands-free)")
+        Quartz.CFRunLoopRun()
+
+    def _listen_pynput_hotkey(self, hk: str):
+        """Listen for any non-Fn hotkey via pynput (ctrl/cmd/alt/f13-f20/letters)."""
         try:
             from pynput import keyboard
 
             def _resolve_key(hotkey_str: str):
                 """Map a key string to a pynput Key for comparison."""
-                hk = hotkey_str.lower().strip()
                 key_map = {
                     'ctrl': (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r),
                     'control': (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r),
@@ -332,7 +393,6 @@ class VoiceVaultApp(rumps.App):
                     'alt': (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r),
                     'option': (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r),
                     'shift': (keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r),
-                    'fn': (keyboard.Key.f13,),  # Fn maps to F13 on Apple keyboards
                     'f13': (keyboard.Key.f13,),
                     'f14': (keyboard.Key.f14,),
                     'f15': (keyboard.Key.f15,),
@@ -342,15 +402,15 @@ class VoiceVaultApp(rumps.App):
                     'f19': (keyboard.Key.f19,),
                     'f20': (keyboard.Key.f20,),
                 }
-                if hk in key_map:
-                    return key_map[hk]
-                if hk.startswith('f') and hk[1:].isdigit():
-                    fn = int(hk[1:])
+                if hotkey_str in key_map:
+                    return key_map[hotkey_str]
+                if hotkey_str.startswith('f') and hotkey_str[1:].isdigit():
+                    fn = int(hotkey_str[1:])
                     if 1 <= fn <= 20:
                         return (getattr(keyboard.Key, f'f{fn}'),)
-                return ('char', hk)
+                return ('char', hotkey_str)
 
-            target = _resolve_key(CONFIG.dictate_hotkey)
+            target = _resolve_key(hk)
 
             def _matches(key, target):
                 if target[0] == 'char':
@@ -366,7 +426,7 @@ class VoiceVaultApp(rumps.App):
                     self._on_hotkey_release()
                 return True
 
-            print(f"[Hotkeys] Listening for: {CONFIG.dictate_hotkey} "
+            print(f"[Hotkeys] Listening for: {hk} "
                   f"(double-tap within {HOTKEY_DOUBLE_TAP_WINDOW_SEC}s → hands-free)")
             with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
                 listener.join()
