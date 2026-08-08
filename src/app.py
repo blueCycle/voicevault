@@ -356,14 +356,22 @@ class VoiceVaultApp(rumps.App):
 
         The Fn key (macOS virtual keycode 63 / kVK_Function) does not behave
         like a normal key as far as pynput's press/release synthesis is
-        concerned: even with System Settings -> Keyboard -> "Press Fn key
-        to: Do Nothing" set (required — otherwise macOS eats the press
-        entirely for Emoji & Symbols / Dictation before any third-party
-        listener sees it), pynput's Listener only ever observed a release
-        event for it in testing, never a press. A raw CGEventTap watching
-        kCGEventFlagsChanged and checking kCGEventFlagMaskSecondaryFn
-        reliably sees both transitions, so we bypass pynput for this one
-        key rather than trust its abstraction here.
+        concerned: pynput's Listener only ever observed a release event for
+        it in testing, never a press, regardless of System Settings. A raw
+        CGEventTap watching kCGEventFlagsChanged and checking
+        kCGEventFlagMaskSecondaryFn reliably sees both transitions instead,
+        so we bypass pynput for this one key.
+
+        System Settings -> Keyboard -> "Press Fn key to: Do Nothing" is
+        NOT required for push-to-talk (hold-and-release) — a sustained hold
+        doesn't trigger macOS's own quick-tap gesture, and our passive
+        ListenOnly tap sees flagsChanged either way. It IS required for
+        hands-free (double-tap): a double-tap is two short taps, which is
+        exactly what macOS's Emoji & Symbols / Dictation gesture responds
+        to by default. Without the setting, that picker pops up and steals
+        window focus mid-dictation, so the paste-injection lands in the
+        picker instead of wherever the user meant it to go — dictation
+        *appears* broken even though capture/transcription work fine.
         """
         try:
             import Quartz

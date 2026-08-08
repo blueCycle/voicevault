@@ -143,6 +143,8 @@ MISTRAL_API_KEY=...
 
 The hotkey defaults to `Fn` so it matches Wispr Flow's own hotkey — if you have both installed, whichever app is actually running owns the key, no remapping needed. Set `VV_DICTATE_HOTKEY` to `ctrl`, `cmd`, `alt`, `f13`–`f20`, or any single letter to change it.
 
+**If you use the `Fn` hotkey, hands-free (double-tap) needs one System Settings change**: Keyboard → "Press 🌐 Fn key to: Do Nothing". Push-to-talk (hold) works fine without it, but a double-tap is two quick taps — exactly what macOS's own Emoji & Symbols/Dictation picker responds to by default — and that picker popping up steals window focus mid-dictation, so your words get transcribed correctly but pasted nowhere useful. Setting it to "Do Nothing" frees the key for double-tap without affecting push-to-talk at all.
+
 Every finished dictation is appended to a daily Markdown log (menu bar → "Open Today's Log") and can be re-pasted via "Replay Last Dictation".
 
 **Text injection fallback chain:**
