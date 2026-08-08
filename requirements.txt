@@ -1,0 +1,13 @@
+numpy
+sounddevice
+pyperclip
+pynput
+rumps
+faster-whisper
+mlx-whisper
+requests
+httpx
+websockets
+python-dotenv
+boto3
+jiwer

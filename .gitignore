@@ -1,0 +1,12 @@
+.env
+.env.op
+venv/
+__pycache__/
+*.pyc
+
+# Personal recordings/transcripts/notes generated at runtime — keep icon
+# assets (icon_master.png, voicevault_icon*.png, VoiceVault.iconset/) tracked.
+data/recordings/
+data/notes/
+data/transcripts/
+data/log/
