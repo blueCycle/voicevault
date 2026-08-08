@@ -43,7 +43,7 @@ class Config:
     initial_prompt: str = ""
     
     # Dictation mode
-    dictate_hotkey: str = "ctrl"  # Hold this key to dictate: ctrl, cmd, alt, f13, or any letter
+    dictate_hotkey: str = "fn"  # Hold this key to dictate: fn, ctrl, cmd, alt, f13, or any letter
     dictate_buffer_ms: int = 1000
     
     # Meeting mode
@@ -110,16 +110,16 @@ class Config:
         vault_path = user_cfg.get("obsidian_vault", defaults.get("obsidian_vault"))
         env_vault = os.getenv("VV_OBSIDIAN_VAULT")
         if env_vault:
-            vault_path = Path(env_vault)
+            vault_path = Path(env_vault).expanduser()
         return cls(
-            data_dir=Path(os.getenv("VV_DATA_DIR", defaults.get("data_dir", "."))),
+            data_dir=Path(os.getenv("VV_DATA_DIR", defaults.get("data_dir", "."))).expanduser(),
             obsidian_vault=vault_path,
             whisper_model=os.getenv("VV_WHISPER_MODEL", defaults.get("whisper_model", "mlx-community/whisper-large-v3-turbo")),
             whisper_backend=os.getenv("VV_WHISPER_BACKEND", defaults.get("whisper_backend", "mlx-whisper")),
             whisper_device=os.getenv("VV_WHISPER_DEVICE", defaults.get("whisper_device", "mps")),
             language=os.getenv("VV_LANGUAGE", defaults.get("language", "en")),
             initial_prompt=os.getenv("VV_INITIAL_PROMPT", defaults.get("initial_prompt", "")),
-            dictate_hotkey=os.getenv("VV_DICTATE_HOTKEY", os.getenv("VV_WISPR_HOTKEY", defaults.get("dictate_hotkey", "ctrl"))),
+            dictate_hotkey=os.getenv("VV_DICTATE_HOTKEY", os.getenv("VV_WISPR_HOTKEY", defaults.get("dictate_hotkey", "fn"))),
             dictate_buffer_ms=int(os.getenv("VV_DICTATE_BUFFER_MS", defaults.get("dictate_buffer_ms", 1000))),
             ollama_url=os.getenv("VV_OLLAMA_URL", defaults.get("ollama_url", "http://localhost:11434")),
             ollama_model=os.getenv("VV_OLLAMA_MODEL", defaults.get("ollama_model", "llama3.1:8b")),

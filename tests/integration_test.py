@@ -33,7 +33,7 @@ def test(name, fn):
 
 def t_config_loads():
     from src.config import Config, CONFIG
-    assert CONFIG.dictate_hotkey == "ctrl"
+    assert CONFIG.dictate_hotkey == "fn"
     assert CONFIG.dictate_buffer_ms == 1000
     assert CONFIG.whisper_model == "mlx-community/whisper-large-v3-turbo"
     assert CONFIG.whisper_backend == "mlx-whisper"

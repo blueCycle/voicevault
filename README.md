@@ -6,7 +6,7 @@ Privacy-first, open-source voice note-taking combining the best of **Dictation**
 
 | Mode | Trigger | Behavior | Output |
 |------|---------|----------|--------|
-| **Dictation** | Hold `Ctrl` key | Streams microphone → Whisper → inserts text at cursor | Text typed into any app |
+| **Dictation** | Hold `Fn` key (configurable) | Streams microphone → Whisper → inserts text at cursor | Text typed into any app |
 | **Meeting** | Click menu bar → Start Meeting | Records full meeting + inline notes | Transcript + AI summary + Obsidian export |
 
 ## Architecture
@@ -109,7 +109,7 @@ VV_WHISPER_MODEL=mlx-community/whisper-large-v3-turbo # model id or HF repo; tin
 VV_WHISPER_DEVICE=mps        # mps (Apple Silicon), cpu, cuda — mlx-whisper ignores this, always uses Metal
 VV_OLLAMA_MODEL=llama3.1:8b  # Any model pulled in Ollama
 VV_OBSIDIAN_VAULT=~/Obsidian/voicevault
-VV_DICTATE_HOTKEY=ctrl       # ctrl, cmd, alt, f13, or any letter — hold for push-to-talk, double-tap for hands-free
+VV_DICTATE_HOTKEY=fn         # fn, ctrl, cmd, alt, f13, or any letter — hold for push-to-talk, double-tap for hands-free
 
 # Provider selection (fallback chain)
 VV_STT_PROVIDER=local        # local | deepgram | assemblyai | speechmatics | revai | aws
@@ -134,12 +134,14 @@ MISTRAL_API_KEY=...
 ### Dictation
 
 **Push-to-talk (default):**
-1. Hold `Ctrl` key
+1. Hold `Fn` key (or whatever you set `VV_DICTATE_HOTKEY` to)
 2. Speak naturally
 3. Release key
 4. Transcribed text appears at your cursor position in any app
 
-**Hands-free:** double-tap `Ctrl` within ~0.35s to start recording without holding the key; a single press stops it and injects the text — useful for longer dictations.
+**Hands-free:** double-tap the hotkey within ~0.35s to start recording without holding the key; a single press stops it and injects the text — useful for longer dictations.
+
+The hotkey defaults to `Fn` so it matches Wispr Flow's own hotkey — if you have both installed, whichever app is actually running owns the key, no remapping needed. Set `VV_DICTATE_HOTKEY` to `ctrl`, `cmd`, `alt`, `f13`–`f20`, or any single letter to change it.
 
 Every finished dictation is appended to a daily Markdown log (menu bar → "Open Today's Log") and can be re-pasted via "Replay Last Dictation".
 

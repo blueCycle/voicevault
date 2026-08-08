@@ -149,7 +149,7 @@ No API keys. No cloud accounts. No configuration files beyond the defaults.
    - Save audio file: `recordings/q3_planning_20260703_120000.wav`
    - Transcribe with Local Whisper: `transcripts/q3_planning_20260703_120000.txt`
    - Summarize with Ollama: `notes/q3_planning_20260703_120000.md`
-   - Export to Obsidian: `~/Obsidian/amit-voicevault/q3_planning_20260703_120000.md`
+   - Export to Obsidian: `~/Obsidian/voicevault/q3_planning_20260703_120000.md`
 
 ---
 

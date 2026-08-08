@@ -29,10 +29,10 @@ in your own Obsidian vault — entirely offline.
 ```
 What should we call you?
 
-[Amit]                    [Continue]
+[Alex]                    [Continue]
 ```
 
-- Used for meeting note attribution (e.g. `Hosted by: Amit`)
+- Used for meeting note attribution (e.g. `Hosted by: Alex`)
 - Stored in `~/.voicevault/user.json` (not the vault, so it persists across vault moves)
 - Optional: if we later support voice profile training, this is the seed label
 
@@ -45,7 +45,7 @@ What should we call you?
 ```
 Where should VoiceVault store your notes?
 
-~/Obsidian/amit-voicevault      [Change]
+~/Obsidian/voicevault      [Change]
 
 [Continue]  (creates folder if it doesn't exist)
 ```
@@ -140,7 +140,7 @@ The menu bar app starts. No restart needed. The user can immediately:
 | Question | Why We Skip It |
 |----------|---------------|
 | Language | Default to English; let user change in Settings later |
-| **Hotkey** | Default to `Ctrl`; power users can remap in Settings |
+| **Hotkey** | Default to `Fn` (matches Wispr Flow); power users can remap in Settings |
 | Whisper model size | Default to `base` for dictation, `small` for meetings; auto-detect M1/M2 and use `mps` |
 | Cloud provider preferences | Not relevant for local MVP; Settings page has these when providers are added |
 | Calendar connection | Not needed for MVP; manual meeting start only |
@@ -195,8 +195,8 @@ if not FIRST_RUN_FLAG.exists():
 ```python
 # ~/.voicevault/user.json
 {
-    "name": "Amit",
-    "vault_path": "/Users/amit/Obsidian/amit-voicevault",
+    "name": "Alex",
+    "vault_path": "/Users/alex/Obsidian/voicevault",
     "onboarded_at": "2026-07-03T08:30:00Z",
     "first_run_complete": true
 }
@@ -243,10 +243,10 @@ $ python src/app.py
 ║  Your voice → structured notes. Entirely offline.             ║
 ╚══════════════════════════════════════════════════════════════╝
 
-What should we call you? [Amit]: Amit
+What should we call you? [Alex]: Alex
 
 Where should VoiceVault store your notes?
-[~/Obsidian/amit-voicevault]: (press Enter to accept)
+[~/Obsidian/voicevault]: (press Enter to accept)
 
 Checking dependencies...
 ✓ Ollama is running (llama3.1:8b available)
@@ -262,7 +262,7 @@ Heard: "VoiceVault is ready for my first meeting."
 ✓ Transcription looks good!
 
 Created a sample meeting note in your vault:
-  ~/Obsidian/amit-voicevault/Meetings/demo-voicevault-onboarding.md
+  ~/Obsidian/voicevault/Meetings/demo-voicevault-onboarding.md
 
-VoiceVault is running in your menu bar. Hold Ctrl to dictate.
+VoiceVault is running in your menu bar. Hold Fn to dictate.
 ```

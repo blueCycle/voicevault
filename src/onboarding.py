@@ -23,6 +23,8 @@ from typing import Optional, Dict, Any
 import numpy as np
 import sounddevice as sd
 
+from src.config import CONFIG
+
 
 # ── Paths ──────────────────────────────────────────────────────────
 
@@ -233,14 +235,14 @@ This is a sample meeting note to show you what VoiceVault output looks like. Whe
 ## Key Discussion Points
 
 - VoiceVault runs entirely on your machine — no cloud required
-- You can dictate anywhere by holding the **Ctrl** key (dictation mode)
+- You can dictate anywhere by holding the **{CONFIG.dictate_hotkey.upper()}** key (dictation mode)
 - You can record meetings and get AI-enhanced summaries (meeting mode)
 - All notes are stored in Markdown format in your Obsidian vault
 
 ## Action Items
 
 - [ ] Record your first real meeting with VoiceVault
-- [ ] Try dictating a quick note by holding Ctrl and speaking
+- [ ] Try dictating a quick note by holding {CONFIG.dictate_hotkey.upper()} and speaking
 - [ ] Explore the vault folder in Obsidian
 
 ## My Notes
@@ -283,7 +285,7 @@ def _print_done(vault: Path):
     print(f"Your notes will live in: {vault}")
     print()
     print("Quick start:")
-    print(f"  • Hold Ctrl key → speak → release → text appears at cursor")
+    print(f"  • Hold {CONFIG.dictate_hotkey.upper()} key → speak → release → text appears at cursor")
     print("  • Click the menu bar icon → Start Meeting → speak → Stop")
     print()
     print("VoiceVault is now running in your menu bar. Enjoy!")
