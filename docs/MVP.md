@@ -100,7 +100,7 @@ ollama pull llama3.1:8b
 ### 2. Install Python Dependencies
 
 ```bash
-cd ~/code/experiments/voicevault
+cd voicevault
 python -m pip install -r requirements.txt
 ```
 

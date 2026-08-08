@@ -14,11 +14,13 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 class Config:
     """Application configuration."""
     
-    # Paths
-    data_dir: Path = field(default_factory=lambda: Path.home() / "code" / "experiments" / "voicevault" / "data")
-    recordings_dir: Path = field(default_factory=lambda: Path.home() / "code" / "experiments" / "voicevault" / "data" / "recordings")
-    transcripts_dir: Path = field(default_factory=lambda: Path.home() / "code" / "experiments" / "voicevault" / "data" / "transcripts")
-    notes_dir: Path = field(default_factory=lambda: Path.home() / "code" / "experiments" / "voicevault" / "data" / "notes")
+    # Paths — under ~/.voicevault, matching the app's other per-user state
+    # (onboarding.py's user.json, the LaunchAgent PID file, etc.) rather
+    # than a path tied to where this repo happens to be cloned.
+    data_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data")
+    recordings_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "recordings")
+    transcripts_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "transcripts")
+    notes_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "notes")
     
     # Obsidian — updated by onboarding, fallback to default
     obsidian_vault: Optional[Path] = field(default_factory=lambda: Path.home() / "Obsidian" / "voicevault")
