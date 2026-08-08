@@ -27,7 +27,6 @@ from src.injection.macos import inject_text
 from src.meeting.session import MeetingManager
 from src.onboarding import needs_onboarding, run_onboarding
 from src.ui.floating_panel import DictationFloatPanel
-from src.ui.dashboard_window import DashboardWindow
 from src.transcript_log import TranscriptLog
 
 
@@ -50,7 +49,6 @@ class VoiceVaultApp(rumps.App):
         self._meeting_manager = MeetingManager()
         self._dictation_panel = DictationFloatPanel()
         self._transcript_log = TranscriptLog(CONFIG.data_dir)
-        self._dashboard_window = DashboardWindow(self._meeting_manager, self._transcript_log)
 
         # Last fully-flushed dictation (post-stop). Used by the Replay menu
         # item so the user can re-paste into a different field.
@@ -68,7 +66,36 @@ class VoiceVaultApp(rumps.App):
         # Start hotkey listener in background thread
         self._hotkey_thread = threading.Thread(target=self._listen_hotkeys, daemon=True)
         self._hotkey_thread.start()
-    
+
+        # Notes API (search + RAG chat) for the Electron dashboard, plus an
+        # initial background index of anything not yet indexed.
+        self._api_thread = threading.Thread(target=self._run_api_server, daemon=True)
+        self._api_thread.start()
+        self._index_thread = threading.Thread(target=self._reindex_notes, daemon=True)
+        self._index_thread.start()
+
+    @staticmethod
+    def _run_api_server():
+        """Run the local notes API (src/api/server.py) for the Electron
+        dashboard. Failures here (e.g. pysqlite3 missing) shouldn't take
+        down dictation/meeting mode, so they're caught and logged."""
+        try:
+            from src.api.server import run as run_api
+            run_api()
+        except Exception as e:
+            print(f"[API] Notes API server failed to start: {e}")
+
+    @staticmethod
+    def _reindex_notes():
+        try:
+            from src.search.indexer import index_all
+            result = index_all()
+            print(f"[Search] Indexed {result['indexed']}, "
+                  f"skipped {result['skipped']} unchanged, "
+                  f"{result['total_chunks']} chunks total")
+        except Exception as e:
+            print(f"[Search] Indexing failed: {e}")
+
     @staticmethod
     def _resolve_icon_path() -> str:
         """Return the path to the SF Symbol menu-bar icon if it exists.
@@ -514,8 +541,28 @@ Edit .env file to change settings.
         )
     
     def _open_dashboard(self, _):
-        """Open the native dashboard window (past meetings + dictations)."""
-        self._dashboard_window.show()
+        """Launch the Electron notes dashboard (browse, search, ask)."""
+        import subprocess
+        repo_root = Path(__file__).resolve().parent.parent
+        electron_dir = repo_root / "electron"
+        node_modules = electron_dir / "node_modules"
+        if not node_modules.exists():
+            try:
+                rumps.alert(
+                    title="Dashboard Setup Needed",
+                    message=f"First-time setup: run this once, then try again:\n\n"
+                            f"cd {electron_dir}\nnpm install",
+                )
+            except Exception:
+                pass
+            print(f"[Dashboard] electron/node_modules missing — run `npm install` in {electron_dir}")
+            return
+        subprocess.Popen(
+            ["npm", "start"],
+            cwd=str(electron_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     def _open_vault(self, _):
         """Open Obsidian vault folder."""

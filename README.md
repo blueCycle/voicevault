@@ -197,6 +197,25 @@ AI-generated summary here...
 **[0:15]** Update on the API migration...
 ```
 
+## Dashboard: Browse, Search & Ask
+
+Click the menu bar icon → **Open Dashboard** to launch an Electron app for browsing every past dictation and meeting, searching across all of them, and asking questions that get answered by your local LLM with citations back to the source notes.
+
+**First-time setup** (one-time, ~1-2 minutes):
+```bash
+cd electron
+npm install
+```
+
+**How it works:**
+- The menu bar app runs a small local API (`src/api/server.py`, FastAPI, bound to `127.0.0.1` only — never reachable over the network) alongside dictation/meeting mode.
+- On startup it indexes anything new into a local SQLite database (`sqlite-vec` for semantic search + FTS5 for keyword search), using local embeddings via Ollama's `nomic-embed-text` model. Re-indexing is incremental — unchanged notes are skipped.
+- The **search box** combines semantic + keyword search (reciprocal rank fusion) so both "the meeting about the Q3 roadmap" and exact-phrase lookups work.
+- The **Ask VoiceVault** tab retrieves the most relevant notes for your question and asks your local `llama3.1:8b` model to answer using only that context — citing which note(s) it used, and telling you plainly if the notes don't contain an answer.
+- Everything — indexing, embeddings, search, and chat — runs locally. Nothing leaves your machine.
+
+First run of `npm install` needs Node.js (`brew install node` if you don't have it).
+
 ## Mobile Companion
 
 See [src/mobile/README.md](src/mobile/README.md) for mobile architecture.

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VoiceVault</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">&#127908;</span>
+        <span class="brand-name">VoiceVault</span>
+      </div>
+
+      <input id="search-input" class="search-input" type="text"
+             placeholder="Search dictations & meetings&hellip;" />
+
+      <div id="item-list" class="item-list"></div>
+    </aside>
+
+    <main class="main">
+      <div class="tabs">
+        <button id="tab-details" class="tab active" data-tab="details">Details</button>
+        <button id="tab-ask" class="tab" data-tab="ask">Ask VoiceVault</button>
+        <div class="tabs-spacer"></div>
+        <span id="status-pill" class="status-pill">connecting&hellip;</span>
+      </div>
+
+      <section id="view-details" class="view active">
+        <div id="details-empty" class="empty-state">
+          Select a dictation or meeting on the left to view it here.
+        </div>
+        <div id="details-content" class="details-content" hidden></div>
+      </section>
+
+      <section id="view-ask" class="view">
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-empty">
+            Ask a question about anything you've dictated or discussed in a meeting.
+            Answers are generated locally and cite the notes they came from.
+          </div>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" class="chat-input" type="text"
+                 placeholder="Ask about your notes&hellip;" autocomplete="off" />
+          <button type="submit" class="chat-send">Ask</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "voicevault-dashboard",
+  "version": "1.0.0",
+  "description": "Browse, search, and ask questions about your VoiceVault dictations and meeting notes",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^43.3.0"
+  }
+}
