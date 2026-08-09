@@ -381,12 +381,21 @@ class VoiceVaultApp(rumps.App):
             return
 
         FN_KEYCODE = 0x3F  # kVK_Function
+        # macOS/the keyboard hardware can emit more than one flagsChanged
+        # event for a single physical Fn actuation (chatter). Without
+        # tracking last-known state, each duplicate event was treated as a
+        # fresh press/release, causing rapid spurious start/stop cycles
+        # ("flickering") instead of one clean press-hold-release.
+        last_state = {"fn_down": False}
 
         def callback(proxy, event_type, event, refcon):
             if event_type == Quartz.kCGEventFlagsChanged:
                 keycode = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode)
                 if keycode == FN_KEYCODE:
                     fn_down = bool(Quartz.CGEventGetFlags(event) & Quartz.kCGEventFlagMaskSecondaryFn)
+                    if fn_down == last_state["fn_down"]:
+                        return event  # duplicate event, not a real transition
+                    last_state["fn_down"] = fn_down
                     if fn_down:
                         self._on_hotkey_press()
                     else:
