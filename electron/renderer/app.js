@@ -208,7 +208,15 @@ function renderDetails(item) {
     html += `<div class="details-section"><h2>Notes</h2><div class="notes-body"></div></div>`;
   }
   if (m.transcript_segments && m.transcript_segments.length) {
-    html += `<div class="details-section"><h2>Transcript</h2><div class="details-body transcript-body"></div></div>`;
+    // Collapsed by default when there's a summary to lead with (progressive
+    // disclosure); expanded if the transcript is the only content to show.
+    const openAttr = m.summary ? "" : "open";
+    html += `
+      <details class="details-section transcript-toggle" ${openAttr}>
+        <summary class="transcript-summary">Transcript (${m.transcript_segments.length} segments)</summary>
+        <div class="details-body transcript-body"></div>
+      </details>
+    `;
   }
   el.detailsContent.innerHTML = html;
   el.detailsContent.querySelector("h1").textContent = item.title;

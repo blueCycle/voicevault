@@ -208,6 +208,39 @@ html, body {
   color: var(--text);
 }
 
+.transcript-toggle {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.transcript-summary {
+  cursor: pointer;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  font-weight: 600;
+  list-style: none;
+}
+
+.transcript-summary::-webkit-details-marker { display: none; }
+
+.transcript-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.15s ease;
+}
+
+.transcript-toggle[open] .transcript-summary::before {
+  transform: rotate(90deg);
+}
+
+.transcript-toggle .transcript-body {
+  margin-top: 12px;
+}
+
 .note-row {
   display: flex;
   gap: 8px;
