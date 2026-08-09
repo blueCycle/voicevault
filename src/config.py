@@ -72,12 +72,13 @@ class Config:
     
     groq_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     mistral_api_key: Optional[str] = None
     
     # Default providers (fallback chain)
     stt_provider: str = "local"  # local | deepgram | assemblyai | speechmatics | revai | aws
-    llm_provider: str = "ollama"  # ollama | groq | anthropic | openrouter | mistral
+    llm_provider: str = "ollama"  # ollama | groq | anthropic | openai | openrouter | mistral
     judge_provider: str = "anthropic"  # llm-as-judge provider
     
     def __post_init__(self):
@@ -147,6 +148,7 @@ class Config:
             aws_s3_bucket=os.getenv("AWS_S3_BUCKET"),
             groq_api_key=os.getenv("GROQ_API_KEY"),
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
             mistral_api_key=os.getenv("MISTRAL_API_KEY"),
             stt_provider=os.getenv("VV_STT_PROVIDER", defaults.get("stt_provider", "local")),

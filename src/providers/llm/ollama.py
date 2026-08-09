@@ -194,6 +194,72 @@ class AnthropicProvider(LLMProvider):
             return False
 
 
+class OpenAIProvider(LLMProvider):
+    """OpenAI - GPT models, widely compatible chat completions API."""
+
+    name = "openai"
+    requires_api_key = True
+
+    COST_INPUT_PER_1M = 2.5   # GPT-4o
+    COST_OUTPUT_PER_1M = 10.0
+
+    def __init__(self, api_key: str = None, model: str = None, **kwargs):
+        super().__init__(api_key=api_key, model=model or "gpt-4o", **kwargs)
+        self.base_url = "https://api.openai.com/v1"
+
+    async def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> LLMResponse:
+        start = time.time()
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": kwargs.get("temperature", 0.7),
+                    "max_tokens": kwargs.get("max_tokens", 4096),
+                },
+                timeout=120.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        elapsed = time.time() - start
+
+        choice = data["choices"][0]
+        text = choice["message"]["content"]
+        usage = data.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        cost = (input_tokens / 1_000_000 * self.COST_INPUT_PER_1M) + (output_tokens / 1_000_000 * self.COST_OUTPUT_PER_1M)
+
+        return LLMResponse(
+            provider=self.name,
+            text=text,
+            model=self.model,
+            tokens_used=input_tokens + output_tokens,
+            cost_usd=cost,
+            processing_time_seconds=elapsed,
+            metadata={"input_tokens": input_tokens, "output_tokens": output_tokens},
+        )
+
+    def health_check(self) -> bool:
+        if not self.api_key:
+            return False
+        try:
+            import httpx
+            resp = httpx.get(f"{self.base_url}/models", headers={"Authorization": f"Bearer {self.api_key}"}, timeout=10.0)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+
 class OpenRouterProvider(LLMProvider):
     """OpenRouter - aggregates multiple providers, routes to cheapest/fastest model."""
     

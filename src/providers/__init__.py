@@ -57,6 +57,12 @@ except ImportError as e:
     print(f"[ProviderRegistry] Failed to register anthropic LLM: {e}")
 
 try:
+    from src.providers.llm.ollama import OpenAIProvider
+    ProviderRegistry.register_llm("openai", OpenAIProvider)
+except ImportError as e:
+    print(f"[ProviderRegistry] Failed to register openai LLM: {e}")
+
+try:
     from src.providers.llm.ollama import OpenRouterProvider
     ProviderRegistry.register_llm("openrouter", OpenRouterProvider)
 except ImportError as e:

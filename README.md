@@ -114,7 +114,7 @@ VV_DICTATE_HOTKEY=fn         # fn, ctrl, cmd, alt, f13, or any letter — hold f
 
 # Provider selection (fallback chain)
 VV_STT_PROVIDER=local        # local | deepgram | assemblyai | speechmatics | revai | aws
-VV_LLM_PROVIDER=ollama      # ollama | groq | anthropic | openrouter | mistral
+VV_LLM_PROVIDER=ollama      # ollama | groq | anthropic | openai | openrouter | mistral
 VV_JUDGE_PROVIDER=anthropic  # llm-as-judge provider
 
 # Optional cloud API keys (only add what you want to use)
@@ -126,6 +126,7 @@ AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 GROQ_API_KEY=...
 ANTHROPIC_API_KEY=...
+OPENAI_API_KEY=...
 OPENROUTER_API_KEY=...
 MISTRAL_API_KEY=...
 ```
@@ -304,6 +305,7 @@ VoiceVault supports a **plugin-based provider system** for both STT and LLM. All
 | **Ollama** | Local | Variable | $0 | Default, privacy-native |
 | **Groq** | Cloud | <100ms | $0.0001 | Fast real-time summaries |
 | **Anthropic Claude 3.5** | Cloud | Fast | $3/$15 per 1M | Best quality, judge/evaluator |
+| **OpenAI GPT-4o** | Cloud | Fast | $2.5/$10 per 1M | Widely compatible chat completions |
 | **OpenRouter** | Cloud | Variable | Varies | Aggregator, model variety |
 | **Mistral (La Plateforme)** | Cloud | Fast | $2/$6 per 1M | EU-native, GDPR-first, no training |
 
