@@ -111,8 +111,18 @@ class Config:
         env_vault = os.getenv("VV_OBSIDIAN_VAULT")
         if env_vault:
             vault_path = Path(env_vault).expanduser()
+
+        data_dir = Path(os.getenv("VV_DATA_DIR", defaults.get("data_dir", "."))).expanduser()
+        # recordings_dir/transcripts_dir/notes_dir always live under data_dir
+        # — they used to be independent fields with their own defaults that
+        # never picked up VV_DATA_DIR, so a custom VV_DATA_DIR silently split
+        # dictations (which do follow it) from meeting notes/recordings
+        # (which didn't) across two different directory trees.
         return cls(
-            data_dir=Path(os.getenv("VV_DATA_DIR", defaults.get("data_dir", "."))).expanduser(),
+            data_dir=data_dir,
+            recordings_dir=data_dir / "recordings",
+            transcripts_dir=data_dir / "transcripts",
+            notes_dir=data_dir / "notes",
             obsidian_vault=vault_path,
             whisper_model=os.getenv("VV_WHISPER_MODEL", defaults.get("whisper_model", "mlx-community/whisper-large-v3-turbo")),
             whisper_backend=os.getenv("VV_WHISPER_BACKEND", defaults.get("whisper_backend", "mlx-whisper")),

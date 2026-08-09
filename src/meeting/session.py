@@ -232,9 +232,9 @@ USER NOTES:
         """List all saved meeting sessions."""
         sessions = []
         for path in CONFIG.notes_dir.glob("*.json"):
-            with open(path) as f:
-                data = json.load(f)
-                # Simple reconstruction
+            try:
+                with open(path) as f:
+                    data = json.load(f)
                 session = MeetingSession(
                     id=data["id"],
                     title=data["title"],
@@ -242,9 +242,17 @@ USER NOTES:
                     ended_at=datetime.fromisoformat(data["ended_at"]) if data.get("ended_at") else None,
                     audio_path=Path(data["audio_path"]) if data.get("audio_path") else None,
                     transcript_segments=data.get("transcript_segments", []),
-                    notes=[MeetingNote(**n) for n in data.get("notes", [])],
+                    # MeetingNote.to_dict() adds a computed "formatted_time"
+                    # field that the constructor doesn't accept — pick only
+                    # the real fields back out rather than **n.
+                    notes=[
+                        MeetingNote(timestamp=n["timestamp"], text=n["text"], tag=n.get("tag"))
+                        for n in data.get("notes", [])
+                    ],
                     summary=data.get("summary")
                 )
                 sessions.append(session)
-        
+            except Exception as e:
+                print(f"[Meeting] Skipping unreadable session file {path.name}: {e}")
+
         return sorted(sessions, key=lambda s: s.started_at, reverse=True)
