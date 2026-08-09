@@ -225,6 +225,50 @@ npm run build   # packages a real VoiceVault.app; skip this and it'll
 
 Both `npm install` and `npm run build` need Node.js (`brew install node` if you don't have it). Re-run `npm run build` after pulling changes that touch `electron/`.
 
+## Performance & Resource Usage
+
+### Component lifecycle
+
+| Component | Runs when | Notes |
+|---|---|---|
+| VoiceVault menu bar app | You start/quit it | Owns the hotkey listener, audio capture, and the local API server |
+| Whisper (`mlx-whisper`) | Loads on your first dictation/transcription, stays resident until VoiceVault quits | Lives *inside* the VoiceVault process — tied 1:1 to its lifecycle |
+| Electron dashboard | Only while its window is open | Separate process(es), independent of the menu bar app |
+| **Ollama server** | **Independent of VoiceVault** — a background service started at login | VoiceVault just calls it over HTTP (`localhost:11434`); it's running whether or not VoiceVault is |
+| **`llama3.1:8b` model weights** | **Independent of VoiceVault** — Ollama loads them on the first request (from anything, not just VoiceVault) and unloads them after `OLLAMA_KEEP_ALIVE` idle time | This is the one to watch — see below |
+
+The Whisper/Ollama distinction matters: quitting VoiceVault frees Whisper's memory immediately, but the LLM's memory is governed entirely by Ollama's own idle timeout, not by VoiceVault starting or stopping.
+
+### Measured footprint
+
+Snapshot taken on a 48GB M-series Mac, VoiceVault + dashboard both open:
+
+| Process | RSS (memory) | CPU |
+|---|---|---|
+| VoiceVault menu bar app (incl. loaded Whisper model) | ~1.4 GB | ~1-2% idle |
+| Electron dashboard (main + 3 helper processes) | ~360 MB | ~0% idle |
+| Ollama background service (no model loaded) | ~150 MB | ~0% |
+| `llama3.1:8b` model (while loaded) | ~9.2 GB | spikes during generation |
+
+Worst case (everything open, Ollama actively summarizing) is roughly **~11 GB**. On lower-RAM Macs, the 9.2GB Ollama spike — not VoiceVault itself — is the number to plan around, and it's controlled by Ollama's settings, not VoiceVault's.
+
+### Tuning: free LLM memory faster
+
+By default Ollama keeps a model loaded for 5 minutes after its last use (`OLLAMA_KEEP_ALIVE`). To free that ~9GB sooner between meetings/chats, lower it — e.g. in a LaunchAgent that runs `launchctl setenv` at login (so it persists across reboots and applies before Ollama starts):
+
+```xml
+<key>ProgramArguments</key>
+<array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>launchctl setenv OLLAMA_KEEP_ALIVE 2m</string>
+</array>
+<key>RunAtLoad</key>
+<true/>
+```
+
+Restart Ollama after changing it (`killall Ollama && open -a Ollama`) for the new default to take effect. This is an Ollama-wide setting — it affects any app using your local Ollama, not just VoiceVault. Going lower than a minute or two risks reloading the model mid-conversation if you pause between Ask-tab questions.
+
 ## Mobile Companion
 
 See [src/mobile/README.md](src/mobile/README.md) for mobile architecture.
