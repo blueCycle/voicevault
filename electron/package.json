@@ -1,13 +1,32 @@
 {
   "name": "voicevault-dashboard",
+  "productName": "VoiceVault",
   "version": "1.0.0",
   "description": "Browse, search, and ask questions about your VoiceVault dictations and meeting notes",
   "main": "main.js",
   "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "ai.voicevault.dashboard",
+    "productName": "VoiceVault",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "target": "dir"
+    }
   },
   "devDependencies": {
-    "electron": "^43.3.0"
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
   }
 }

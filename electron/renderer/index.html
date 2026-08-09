@@ -21,13 +21,24 @@
 
     <main class="main">
       <div class="tabs">
-        <button id="tab-details" class="tab active" data-tab="details">Details</button>
+        <button id="tab-record" class="tab active" data-tab="record">Record</button>
+        <button id="tab-details" class="tab" data-tab="details">Details</button>
         <button id="tab-ask" class="tab" data-tab="ask">Ask VoiceVault</button>
         <div class="tabs-spacer"></div>
+        <span id="rec-indicator" class="rec-indicator" hidden>&#9679; REC <span id="rec-indicator-time">0:00</span></span>
         <span id="status-pill" class="status-pill">connecting&hellip;</span>
       </div>
 
-      <section id="view-details" class="view active">
+      <section id="view-record" class="view active">
+        <div class="record-panel">
+          <input id="record-title" class="search-input record-title-input" type="text"
+                 placeholder="Meeting title (optional — inferred from the transcript if left blank)" />
+          <button id="record-toggle" class="record-btn">&#9679; Start Recording</button>
+          <div id="record-status" class="record-status">Not recording.</div>
+        </div>
+      </section>
+
+      <section id="view-details" class="view">
         <div id="details-empty" class="empty-state">
           Select a dictation or meeting on the left to view it here.
         </div>

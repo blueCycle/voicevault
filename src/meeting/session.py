@@ -256,3 +256,10 @@ USER NOTES:
                 print(f"[Meeting] Skipping unreadable session file {path.name}: {e}")
 
         return sorted(sessions, key=lambda s: s.started_at, reverse=True)
+
+
+# Shared singleton — both the menu bar app (src/app.py) and the local API
+# server (src/api/server.py, used by the Electron dashboard's Record tab)
+# need to see the *same* in-progress recording, since AudioRecorder holds
+# live device state that can't be split across two MeetingManager instances.
+MANAGER = MeetingManager()

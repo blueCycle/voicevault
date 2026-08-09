@@ -24,7 +24,7 @@ from src.config import CONFIG
 from src.audio.streamer import AudioStreamer
 from src.transcription.engine import ENGINE
 from src.injection.macos import inject_text
-from src.meeting.session import MeetingManager
+from src.meeting.session import MANAGER as MEETING_MANAGER
 from src.onboarding import needs_onboarding, run_onboarding
 from src.ui.floating_panel import DictationFloatPanel
 from src.transcript_log import TranscriptLog
@@ -46,7 +46,10 @@ class VoiceVaultApp(rumps.App):
 
         self._dictation_streamer: AudioStreamer = None
         self._dictation_audio_buffer: list = []
-        self._meeting_manager = MeetingManager()
+        # Shared with the API server (src/api/server.py) so the Electron
+        # dashboard's Record tab and this menu bar see the same in-progress
+        # recording rather than two independent AudioRecorder instances.
+        self._meeting_manager = MEETING_MANAGER
         self._dictation_panel = DictationFloatPanel()
         self._transcript_log = TranscriptLog(CONFIG.data_dir)
 
@@ -62,6 +65,14 @@ class VoiceVaultApp(rumps.App):
 
         # Menu items
         self._build_menu()
+
+        # Ticks every second for the whole app lifetime (not just during a
+        # meeting) so the menu bar countdown stays accurate no matter where
+        # a recording was started from — the menu bar's own Meeting item,
+        # or the Electron dashboard's Record tab, both of which now share
+        # MEETING_MANAGER's state directly.
+        self._menu_timer = rumps.Timer(self._update_menu, 1)
+        self._menu_timer.start()
 
         # Start hotkey listener in background thread
         self._hotkey_thread = threading.Thread(target=self._listen_hotkeys, daemon=True)
@@ -126,8 +137,15 @@ class VoiceVaultApp(rumps.App):
         # Update menu state
         self._update_menu()
     
-    def _update_menu(self):
-        """Update menu item labels and the menubar title based on state."""
+    def _update_menu(self, _timer=None):
+        """Update menu item labels and the menubar title based on state.
+
+        Accepts an optional arg because rumps.Timer calls its callback with
+        the Timer instance itself (the meeting-recording countdown uses
+        this as its tick callback) — every 1s tick during a recording was
+        silently crashing without this, which is why the menu bar timer
+        display never advanced while recording.
+        """
         dictation_item = self.menu["Dictate"]
         meeting_item = self.menu["Meeting"]
 
@@ -277,54 +295,17 @@ class VoiceVaultApp(rumps.App):
             pass
     
     def _toggle_meeting(self, _):
-        """Toggle meeting recording."""
-        if self._meeting_manager.is_recording:
-            self._stop_meeting()
-        else:
-            self._start_meeting()
-    
-    def _start_meeting(self):
-        """Start a new meeting recording."""
-        window = rumps.Window(
-            title="New Meeting",
-            message="Enter meeting title:",
-            default_text="Meeting",
-            ok="Start",
-            cancel="Cancel"
-        )
-        response = window.run()
-        
-        if response.clicked:
-            title = response.text or "Untitled Meeting"
-            self._meeting_manager.start(title)
-            self._update_menu()
-            
-            # Start timer to update menu
-            self._meeting_timer = rumps.Timer(self._update_menu, 1)
-            self._meeting_timer.start()
-            
-            try:
-                rumps.notification("VoiceVault", "Meeting Started", title)
-            except Exception:
-                pass
-    
-    def _stop_meeting(self):
-        """Stop meeting recording and process."""
-        if hasattr(self, '_meeting_timer'):
-            self._meeting_timer.stop()
-        
-        session = self._meeting_manager.stop()
-        self._update_menu()
-        
-        try:
-            rumps.notification(
-                "VoiceVault", 
-                "Meeting Complete", 
-                f"{session.title}: {int(session.duration/60)}min"
-            )
-        except Exception:
-            pass
-    
+        """Meeting recording is controlled from the Electron dashboard's
+        Record tab now, not a menu-bar dialog — this matches how Granola
+        and Wispr Flow do it (a visible window owns start/stop) and
+        sidesteps the whole class of NSAlert-focus/stuck-menu bugs that
+        came from trying to drive it through rumps.Window instead. This
+        item just opens/focuses the dashboard; the shared MEETING_MANAGER
+        singleton is what keeps this menu's own status line (see
+        _update_menu) accurate regardless of where recording was started.
+        """
+        self._open_dashboard(None)
+
     def _add_meeting_note(self, text: str, tag: str = None):
         """Add a note to the current meeting."""
         if self._meeting_manager.is_recording:
@@ -558,22 +539,40 @@ Edit .env file to change settings.
         )
     
     def _open_dashboard(self, _):
-        """Launch the Electron notes dashboard (browse, search, ask)."""
+        """Launch the Electron notes dashboard (browse, search, ask).
+
+        Prefers the packaged VoiceVault.app (built via `npm run build` in
+        electron/) over `npm start` dev mode — running unpackaged shows up
+        in the Dock/Cmd+Tab/menu bar as generic "Electron" rather than
+        "VoiceVault", which read as two disconnected apps instead of one
+        consistent product. `open -a` also reuses the running instance
+        (single-instance-locked in main.js) instead of spawning a new one.
+        """
         import subprocess
         repo_root = Path(__file__).resolve().parent.parent
         electron_dir = repo_root / "electron"
+        packaged_app = electron_dir / "dist" / "mac-arm64" / "VoiceVault.app"
+
+        if packaged_app.exists():
+            subprocess.Popen(["open", "-a", str(packaged_app)])
+            return
+
         node_modules = electron_dir / "node_modules"
         if not node_modules.exists():
             try:
                 rumps.alert(
                     title="Dashboard Setup Needed",
                     message=f"First-time setup: run this once, then try again:\n\n"
-                            f"cd {electron_dir}\nnpm install",
+                            f"cd {electron_dir}\nnpm install\nnpm run build",
                 )
             except Exception:
                 pass
             print(f"[Dashboard] electron/node_modules missing — run `npm install` in {electron_dir}")
             return
+
+        # Packaged build not present yet — fall back to dev mode so the
+        # dashboard still opens, but this will show as "Electron" in the
+        # Dock until `npm run build` is run once.
         subprocess.Popen(
             ["npm", "start"],
             cwd=str(electron_dir),

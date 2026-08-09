@@ -8,8 +8,10 @@ const el = {
   itemList: document.getElementById("item-list"),
   searchInput: document.getElementById("search-input"),
   statusPill: document.getElementById("status-pill"),
+  tabRecord: document.getElementById("tab-record"),
   tabDetails: document.getElementById("tab-details"),
   tabAsk: document.getElementById("tab-ask"),
+  viewRecord: document.getElementById("view-record"),
   viewDetails: document.getElementById("view-details"),
   viewAsk: document.getElementById("view-ask"),
   detailsEmpty: document.getElementById("details-empty"),
@@ -17,18 +19,25 @@ const el = {
   chatMessages: document.getElementById("chat-messages"),
   chatForm: document.getElementById("chat-form"),
   chatInput: document.getElementById("chat-input"),
+  recIndicator: document.getElementById("rec-indicator"),
+  recIndicatorTime: document.getElementById("rec-indicator-time"),
+  recordTitle: document.getElementById("record-title"),
+  recordToggle: document.getElementById("record-toggle"),
+  recordStatus: document.getElementById("record-status"),
 };
 
 // ---------- Tabs ----------
 
 function setTab(tab) {
-  const isDetails = tab === "details";
-  el.tabDetails.classList.toggle("active", isDetails);
-  el.tabAsk.classList.toggle("active", !isDetails);
-  el.viewDetails.classList.toggle("active", isDetails);
-  el.viewAsk.classList.toggle("active", !isDetails);
+  el.tabRecord.classList.toggle("active", tab === "record");
+  el.tabDetails.classList.toggle("active", tab === "details");
+  el.tabAsk.classList.toggle("active", tab === "ask");
+  el.viewRecord.classList.toggle("active", tab === "record");
+  el.viewDetails.classList.toggle("active", tab === "details");
+  el.viewAsk.classList.toggle("active", tab === "ask");
 }
 
+el.tabRecord.addEventListener("click", () => setTab("record"));
 el.tabDetails.addEventListener("click", () => setTab("details"));
 el.tabAsk.addEventListener("click", () => setTab("ask"));
 
@@ -331,6 +340,82 @@ el.chatForm.addEventListener("submit", async (e) => {
     textEl.textContent = `Error: ${e.message}`;
   }
 });
+
+// ---------- Record ----------
+
+function formatDuration(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+let isRecording = false;
+let recordActionInFlight = false;
+
+async function pollRecordingStatus() {
+  try {
+    const resp = await fetch(`${API_BASE}/meetings/current`);
+    const status = await resp.json();
+    isRecording = !!status.is_recording;
+
+    if (isRecording) {
+      const durationLabel = formatDuration(status.duration_seconds);
+      el.recIndicator.hidden = false;
+      el.recIndicatorTime.textContent = durationLabel;
+      el.recordStatus.textContent = `Recording "${status.title}" — ${durationLabel}`;
+      el.recordTitle.disabled = true;
+      if (!recordActionInFlight) {
+        el.recordToggle.textContent = "■ Stop Recording";
+        el.recordToggle.classList.add("recording");
+        el.recordToggle.disabled = false;
+      }
+    } else {
+      el.recIndicator.hidden = true;
+      el.recordTitle.disabled = false;
+      if (!recordActionInFlight) {
+        el.recordToggle.textContent = "● Start Recording";
+        el.recordToggle.classList.remove("recording");
+        el.recordToggle.disabled = false;
+        el.recordStatus.textContent = "Not recording.";
+      }
+    }
+  } catch (e) {
+    // API not up yet — leave the panel in its last known state.
+  }
+}
+
+el.recordToggle.addEventListener("click", async () => {
+  recordActionInFlight = true;
+  el.recordToggle.disabled = true;
+  try {
+    if (isRecording) {
+      el.recordStatus.textContent = "Stopping — transcribing and summarizing locally, this can take a bit…";
+      const resp = await fetch(`${API_BASE}/meetings/stop`, { method: "POST" });
+      if (!resp.ok) throw new Error(await resp.text());
+      el.recordTitle.value = "";
+      await loadItems();
+      const finished = await resp.json();
+      selectItemById(finished.id);
+    } else {
+      const title = el.recordTitle.value.trim();
+      const resp = await fetch(`${API_BASE}/meetings/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title || "Meeting" }),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+    }
+  } catch (e) {
+    el.recordStatus.textContent = `Error: ${e.message}`;
+  } finally {
+    recordActionInFlight = false;
+    await pollRecordingStatus();
+  }
+});
+
+setInterval(pollRecordingStatus, 1000);
+pollRecordingStatus();
 
 // ---------- Init ----------
 

@@ -77,7 +77,7 @@ if [ ! -f "data/voicevault_icon.png" ]; then
     python scripts/build-icon.py >/dev/null 2>&1 || true
 fi
 
-nohup python src/app.py > "\${HOME}/.voicevault/voicevault.log" 2>&1 &
+nohup python -u src/app.py > "\${HOME}/.voicevault/voicevault.log" 2>&1 &
 echo \$! > "\${PIDFILE}"
 disown
 EOF

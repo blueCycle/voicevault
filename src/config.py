@@ -14,13 +14,17 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 class Config:
     """Application configuration."""
     
-    # Paths — under ~/.voicevault, matching the app's other per-user state
-    # (onboarding.py's user.json, the LaunchAgent PID file, etc.) rather
-    # than a path tied to where this repo happens to be cloned.
-    data_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data")
-    recordings_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "recordings")
-    transcripts_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "transcripts")
-    notes_dir: Path = field(default_factory=lambda: Path.home() / ".voicevault" / "data" / "notes")
+    # Paths — under ~/Library/Application Support/VoiceVault, matching
+    # where a normal installed macOS app keeps its user data (see e.g.
+    # Granola at ~/Library/Application Support/Granola), rather than a
+    # path tied to where this repo happens to be cloned. Other per-user
+    # state (onboarding.py's user.json, logs, the LaunchAgent PID file)
+    # still lives under ~/.voicevault — only the data dir moved here.
+    _APP_SUPPORT_DIR = Path.home() / "Library" / "Application Support" / "VoiceVault"
+    data_dir: Path = field(default_factory=lambda: Config._APP_SUPPORT_DIR)
+    recordings_dir: Path = field(default_factory=lambda: Config._APP_SUPPORT_DIR / "recordings")
+    transcripts_dir: Path = field(default_factory=lambda: Config._APP_SUPPORT_DIR / "transcripts")
+    notes_dir: Path = field(default_factory=lambda: Config._APP_SUPPORT_DIR / "notes")
     
     # Obsidian — updated by onboarding, fallback to default
     obsidian_vault: Optional[Path] = field(default_factory=lambda: Path.home() / "Obsidian" / "voicevault")

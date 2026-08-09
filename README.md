@@ -7,7 +7,7 @@ Privacy-first, open-source voice note-taking combining the best of **Dictation**
 | Mode | Trigger | Behavior | Output |
 |------|---------|----------|--------|
 | **Dictation** | Hold `Fn` key (configurable) | Streams microphone → Whisper → inserts text at cursor | Text typed into any app |
-| **Meeting** | Click menu bar → Start Meeting | Records full meeting + inline notes | Transcript + AI summary + Obsidian export |
+| **Meeting** | Dashboard → Record tab → Start Recording | Records full meeting, transcribes + summarizes in the background | Transcript + AI summary + Obsidian export |
 
 ## Architecture
 
@@ -104,6 +104,7 @@ All settings are in `~/.voicevault/user.json` (created during onboarding) and `.
 
 ```env
 # Core settings
+VV_DATA_DIR=~/Library/Application Support/VoiceVault  # default if unset; where recordings/transcripts/notes/search index live
 VV_WHISPER_BACKEND=mlx-whisper                       # mlx-whisper (Apple Silicon) | faster-whisper (Intel/CPU)
 VV_WHISPER_MODEL=mlx-community/whisper-large-v3-turbo # model id or HF repo; tiny/base/small/medium/large for faster-whisper
 VV_WHISPER_DEVICE=mps        # mps (Apple Silicon), cpu, cuda — mlx-whisper ignores this, always uses Metal
@@ -154,15 +155,17 @@ Every finished dictation is appended to a daily Markdown log (menu bar → "Open
 
 ### Meeting Recording
 
-1. Click menu bar icon → Start Meeting
-2. Enter meeting title
-3. Record begins (mic + optional system audio)
-4. Take inline notes anytime (via API or future floating window)
-5. Click Stop when done
-6. Auto-processing:
-   - Transcribe with timestamps
+Recording starts and stops from the [Dashboard](#dashboard-browse-search--ask)'s **Record** tab — a visible window, not a menu-bar dialog. This mirrors how Granola and Wispr Flow do it, and avoids the class of focus/stuck-menu bugs that came from trying to drive a start/stop flow through a native macOS alert triggered from an accessory (no-Dock-icon) app.
+
+1. Menu bar → **Meeting** (or **Open Dashboard**) → opens the dashboard to the Record tab
+2. Optionally type a title (left blank, one is inferred from the transcript once you stop)
+3. Click **Start Recording** — capture begins (mic + optional system audio); the menu bar and the dashboard's REC indicator both show a live timer
+4. Click **Stop Recording** when done
+5. Auto-processing, all local:
+   - Transcribe with timestamps (mlx-whisper)
    - Generate AI summary via Ollama
    - Export to Obsidian as Markdown with YAML frontmatter
+6. The dashboard jumps straight to the finished note (summary + collapsible full transcript)
 
 ## Obsidian Export Format
 
@@ -201,22 +204,26 @@ AI-generated summary here...
 
 ## Dashboard: Browse, Search & Ask
 
-Click the menu bar icon → **Open Dashboard** to launch an Electron app for browsing every past dictation and meeting, searching across all of them, and asking questions that get answered by your local LLM with citations back to the source notes.
+Click the menu bar icon → **Open Dashboard** (or **Meeting**) to launch VoiceVault's Electron app — a **Record** tab for starting/stopping meetings, browsing every past dictation and meeting, searching across all of them, and asking questions answered by your local LLM with citations back to the source notes.
 
-**First-time setup** (one-time, ~1-2 minutes):
+**First-time setup** (one-time, ~2-3 minutes):
 ```bash
 cd electron
 npm install
+npm run build   # packages a real VoiceVault.app; skip this and it'll
+                 # still launch via `npm start`, but shows up as generic
+                 # "Electron" in the Dock/Cmd+Tab instead of "VoiceVault"
 ```
 
 **How it works:**
 - The menu bar app runs a small local API (`src/api/server.py`, FastAPI, bound to `127.0.0.1` only — never reachable over the network) alongside dictation/meeting mode.
+- The dashboard's **Record** tab talks to that same API (`/meetings/start`, `/meetings/stop`, `/meetings/current`) to control the same `MeetingManager` the menu bar uses — start it from either place, both stay in sync.
 - On startup it indexes anything new into a local SQLite database (`sqlite-vec` for semantic search + FTS5 for keyword search), using local embeddings via Ollama's `nomic-embed-text` model. Re-indexing is incremental — unchanged notes are skipped.
 - The **search box** combines semantic + keyword search (reciprocal rank fusion) so both "the meeting about the Q3 roadmap" and exact-phrase lookups work.
 - The **Ask VoiceVault** tab retrieves the most relevant notes for your question and asks your local `llama3.1:8b` model to answer using only that context — citing which note(s) it used, and telling you plainly if the notes don't contain an answer.
-- Everything — indexing, embeddings, search, and chat — runs locally. Nothing leaves your machine.
+- Everything — recording, indexing, embeddings, search, and chat — runs locally. Nothing leaves your machine.
 
-First run of `npm install` needs Node.js (`brew install node` if you don't have it).
+Both `npm install` and `npm run build` need Node.js (`brew install node` if you don't have it). Re-run `npm run build` after pulling changes that touch `electron/`.
 
 ## Mobile Companion
 
@@ -279,6 +286,8 @@ This runs every provider you have API keys for, uses an LLM-as-judge (Claude 3.5
 - [x] Test harness with auto-discovery and ranked reports
 - [x] MVP: Working Dictation + Meeting modes on macOS
 - [x] Hands-free dictation mode, dashboard, daily transcript log
+- [x] Meeting recording moved into the dashboard's Record tab (Granola-style)
+- [x] Dashboard packaged as a real macOS app (`electron-builder`), not a bare dev process
 - [ ] Floating note window for Meeting mode
 - [ ] Speaker diarization (who said what)
 - [ ] Mobile companion app (React Native / SwiftUI)

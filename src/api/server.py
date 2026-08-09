@@ -32,6 +32,10 @@ class AskRequest(BaseModel):
     k: int = 6
 
 
+class StartMeetingRequest(BaseModel):
+    title: str = "Meeting"
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -48,12 +52,63 @@ def list_dictations():
 
 @app.get("/meetings")
 def list_meetings():
-    from src.meeting.session import MeetingManager
+    from src.meeting.session import MANAGER
 
-    manager = MeetingManager()
-    sessions = manager.list_sessions()
+    sessions = MANAGER.list_sessions()
     sessions.sort(key=lambda s: s.started_at, reverse=True)
     return [s.to_dict() for s in sessions]
+
+
+@app.get("/meetings/current")
+def current_meeting():
+    """Live status for the Record tab — polled every second while open."""
+    from src.meeting.session import MANAGER
+
+    if not MANAGER.is_recording or not MANAGER.current_session:
+        return {"is_recording": False}
+    return {
+        "is_recording": True,
+        "title": MANAGER.current_session.title,
+        "duration_seconds": MANAGER.current_session.duration,
+    }
+
+
+@app.post("/meetings/start")
+def start_meeting(req: StartMeetingRequest):
+    from fastapi import HTTPException
+
+    from src.meeting.session import MANAGER
+
+    title = (req.title or "").strip() or "Meeting"
+    try:
+        session = MANAGER.start(title)
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"id": session.id, "title": session.title}
+
+
+@app.post("/meetings/stop")
+def stop_meeting():
+    from fastapi import HTTPException
+
+    from src.meeting.session import MANAGER
+
+    if not MANAGER.is_recording:
+        raise HTTPException(status_code=409, detail="No meeting is recording")
+    # Runs transcription + summarization + Obsidian export synchronously —
+    # FastAPI puts sync endpoints in a threadpool, so this doesn't block
+    # /meetings/current polling or anything else while it works.
+    session = MANAGER.stop()
+    try:
+        import rumps
+
+        rumps.notification(
+            "VoiceVault", "Meeting Complete",
+            f"{session.title}: {int(session.duration / 60)}min",
+        )
+    except Exception:
+        pass
+    return session.to_dict()
 
 
 @app.get("/search")
